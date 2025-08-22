@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
+  serializedVersion: 3
   tags: []
   layers:
   - Default
@@ -11,7 +11,7 @@ TagManager:
   - 
   - Water
   - UI
-  - 
+  - groundCollisionMask
   - 
   - 
   - 
@@ -41,3 +41,14 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Background
+    uniqueID: 74988603
+    locked: 0
+  - name: Player
+    uniqueID: 4294532205
+    locked: 0
+  - name: Ground
+    uniqueID: 3759430109
+    locked: 0
+  m_RenderingLayers:
+  - Default
