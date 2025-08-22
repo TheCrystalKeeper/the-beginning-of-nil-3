@@ -22,6 +22,10 @@ public class MinimalKinematicController2D : MonoBehaviour
     [Header("Collision")]
     public LayerMask collisionMask = ~0;
 
+    [Header("Step Assist (for walking up slopes/joins)")]
+    [Tooltip("Max vertical nudge to take when a sideways move is blocked. Think 'few pixels' in world units.")]
+    public float stepUpHeight = 0.15f;
+
     [Header("Jump Grounding Prevention")]
     [Tooltip("Time after a jump during which ground detection is suppressed to avoid re-sticking.")]
     public float jumpGroundingPreventionTime = 0.10f;
@@ -74,39 +78,35 @@ public class MinimalKinematicController2D : MonoBehaviour
         // 2) Build desired horizontal speed from input (same logic ground/air)
         float targetX = _moveInput.x * moveSpeed;
 
-        // --- Removed slope projection so slopes do NOT affect horizontal speed ---
-        // (We keep control consistent on flats and slopes.)
+        // Slopes do NOT change horizontal speed; we keep control consistent
 
-        // --- Accel/Decel toward targetX (applies in air AND on ground) ---
+        // Accel/Decel toward targetX (applies in air AND on ground)
         float rate = (Mathf.Abs(targetX) > Mathf.Abs(Velocity.x)) ? acceleration : deceleration;
         Velocity = new Vector2(Mathf.MoveTowards(Velocity.x, targetX, rate * dt), Velocity.y);
 
         // 3) Jump & gravity (jump doesn't touch X)
         if (IsGrounded)
         {
-            // Keep glued to ground when not jumping
             if (Velocity.y < 0f) Velocity = new Vector2(Velocity.x, 0f);
 
             if (_jumpRequested)
             {
-                Velocity = new Vector2(Velocity.x, jumpSpeed); // <- don't modify X on jump
+                Velocity = new Vector2(Velocity.x, jumpSpeed);
                 IsGrounded = false;
                 _groundingPreventionTimer = jumpGroundingPreventionTime;
             }
             else
             {
-                // Standing: ensure no upward velocity accumulates
                 Velocity = new Vector2(Velocity.x, 0f);
             }
         }
         else
         {
-            // Airborne: same horizontal control; apply gravity only to Y
             Velocity = new Vector2(Velocity.x, Velocity.y - gravity * dt);
         }
         _jumpRequested = false;
 
-        // 4) Move with capsule casts & sliding
+        // 4) Move with capsule casts & sliding (+ simple step-up assist)
         Vector2 displacement = Velocity * dt;
         MoveWithCasts(displacement);
 
@@ -177,7 +177,7 @@ public class MinimalKinematicController2D : MonoBehaviour
         }
     }
 
-    // New: keep hugging ground even while grounded and moving onto a descending slope
+    // Keep hugging ground even while grounded and moving onto a descending slope
     void FollowGroundWhileGrounded()
     {
         Vector2 origin = (Vector2)transform.position + Vector2.up * 0.02f;
@@ -200,7 +200,6 @@ public class MinimalKinematicController2D : MonoBehaviour
             {
                 transform.position += (Vector3)(Vector2.down * snap);
                 GroundNormal = hit.normal;
-                // Stay grounded; don't change Velocity.x so speed remains constant on slopes
                 if (Velocity.y < 0f) Velocity = new Vector2(Velocity.x, 0f);
             }
         }
@@ -217,13 +216,16 @@ public class MinimalKinematicController2D : MonoBehaviour
             Vector2 dir = remaining.normalized;
             float dist = remaining.magnitude;
 
-            // Lift cast when grounded & moving sideways (prevents ground self-hit).
-            // Also lift while rising during prevention window after jump.
+            // Inset casts to avoid re-hitting current ground
             Vector2 castPos = pos;
             bool horizontalish = Mathf.Abs(dir.y) < 0.001f;
             bool goingUp = dir.y > 0.001f;
+            bool rising = Velocity.y > 0f;
+            bool canGroundNow = (_groundingPreventionTimer <= 0f) && (Velocity.y <= 0f);
 
-            if ((IsGrounded && horizontalish) || (_groundingPreventionTimer > 0f && goingUp))
+            if (IsGrounded)
+                castPos += GroundNormal * (skin * 2f);
+            else if (_groundingPreventionTimer > 0f && goingUp)
                 castPos += Vector2.up * (skin * 2f);
 
             RaycastHit2D hit = Physics2D.CapsuleCast(
@@ -238,28 +240,158 @@ public class MinimalKinematicController2D : MonoBehaviour
 
             if (hit)
             {
-                bool hitIsGroundish = Vector2.Angle(hit.normal, Vector2.up) < 5f;
+                float angleFromUp = Vector2.Angle(hit.normal, Vector2.up);
+                bool walkable = angleFromUp <= maxSlopeAngle;
+                bool movingIntoSurface = Vector2.Dot(dir, -hit.normal) > 0f;
+                bool floorLike = hit.normal.y > 0.5f; // tweak (0.4–0.7) if desired
 
-                // Ignore ground self-hit in two cases:
-                if ((IsGrounded && horizontalish && hitIsGroundish && hit.distance <= skin * 1.5f) ||
-                    (_groundingPreventionTimer > 0f && goingUp && hitIsGroundish && hit.distance <= skin * 2f))
+                // --- AIRBORNE CORNER SUPPRESSION ---
+                // While rising or during prevention, treat floor-like hits as blockers:
+                // don't slide along the floor tangent and don't ground.
+                if ((rising || _groundingPreventionTimer > 0f) && floorLike && movingIntoSurface)
+                {
+                    float travel = Mathf.Max(0f, hit.distance - skin);
+                    pos += dir * travel;
+
+                    // Keep only vertical leftover (prevents "ride-up" onto top)
+                    Vector2 after = remaining - dir * travel;
+                    remaining = Project2D(after, Vector2.up);
+
+                    // Optional: if we were pushing into a side, zero X to stop grinding
+                    if (Mathf.Abs(hit.normal.x) > 0.25f && Mathf.Sign(Velocity.x) == -Mathf.Sign(hit.normal.x))
+                        Velocity = new Vector2(0f, Velocity.y);
+
+                    IsGrounded = false;
+                    // Tiny clearance to avoid re-hit
+                    pos += hit.normal * (skin * 0.25f);
+                    continue;
+                }
+
+                // --- TOO-STEEP SLOPE AS WALL when moving sideways ---
+                if (!walkable && horizontalish && movingIntoSurface)
+                {
+                    float travel = Mathf.Max(0f, hit.distance - skin);
+                    pos += dir * travel;
+
+                    Velocity = new Vector2(0f, Velocity.y);          // stop horizontal
+                    remaining = new Vector2(0f, remaining.y);        // cancel remaining X
+                    pos += hit.normal * (skin * 0.5f);               // nudge off wall
+                    IsGrounded = false;
+                    continue;
+                }
+
+                // --- Walkable slope while moving sideways: slide along tangent ---
+                if (walkable && horizontalish)
+                {
+                    float travel = Mathf.Max(0f, hit.distance - skin);
+                    pos += dir * travel;
+
+                    float leftover = Mathf.Max(0f, dist - travel);
+                    Vector2 n = hit.normal;
+                    Vector2 tangent = new Vector2(n.y, -n.x).normalized;
+                    if (Vector2.Dot(tangent, dir) < 0f) tangent = -tangent;
+
+                    remaining = tangent * leftover;
+
+                    if (canGroundNow)
+                    {
+                        IsGrounded = true;
+                        GroundNormal = n;
+                    }
+
+                    pos += n * (skin * 0.25f);
+                    continue;
+                }
+
+                // --- Flat ground self-hit tolerance ---
+                bool flatGround = angleFromUp < 5f;
+                if ((IsGrounded && horizontalish && flatGround && hit.distance <= skin * 1.5f) ||
+                    (_groundingPreventionTimer > 0f && goingUp && flatGround && hit.distance <= skin * 2f))
                 {
                     pos += remaining;
                     remaining = Vector2.zero;
                     break;
                 }
 
-                float travel = Mathf.Max(0f, hit.distance - skin);
-                pos += dir * travel;
+                // --- Step-up attempt (horizontal only) ---
+                if (horizontalish && stepUpHeight > 0f)
+                {
+                    int steps = 3;
+                    float step = stepUpHeight / steps;
+                    bool stepped = false;
 
-                // Slide along the surface (projection onto tangent)
-                Vector2 n = hit.normal;
-                Vector2 tangent = new Vector2(n.y, -n.x);
-                float along = Vector2.Dot(remaining - dir * travel, tangent);
-                remaining = tangent * along;
+                    for (int s = 1; s <= steps; s++)
+                    {
+                        float raise = s * step;
+                        Vector2 raisedPos = pos + Vector2.up * raise;
 
-                if (IsGrounded && Vector2.Angle(n, Vector2.up) > maxSlopeAngle)
+                        RaycastHit2D upBlock = Physics2D.CapsuleCast(
+                            pos, size, CapsuleDirection2D.Vertical, 0f,
+                            Vector2.up, raise, collisionMask
+                        );
+                        if (upBlock && upBlock.distance <= skin) break;
+
+                        RaycastHit2D hit2 = Physics2D.CapsuleCast(
+                            raisedPos, size, CapsuleDirection2D.Vertical, 0f,
+                            dir, dist + skin, collisionMask
+                        );
+
+                        if (!hit2 || hit2.distance > skin + 1e-5f)
+                        {
+                            pos = raisedPos;
+
+                            if (hit2)
+                            {
+                                float travel2 = Mathf.Max(0f, hit2.distance - skin);
+                                pos += dir * travel2;
+
+                                float leftover2 = Mathf.Max(0f, dist - travel2);
+                                remaining = (dir * leftover2);
+                            }
+                            else
+                            {
+                                pos += dir * dist;
+                                remaining = Vector2.zero;
+                            }
+
+                            if (canGroundNow)
+                            {
+                                IsGrounded = true;
+                                pos += Vector2.up * (skin * 0.25f);
+                            }
+                            stepped = true;
+                            break;
+                        }
+                    }
+
+                    if (stepped) continue;
+                }
+
+                // --- Generic slide (walls / ceilings / too-steep when not horizontal) ---
+                float travelGeneric = Mathf.Max(0f, hit.distance - skin);
+                pos += dir * travelGeneric;
+
+                Vector2 nn = hit.normal;
+                Vector2 t = new Vector2(nn.y, -nn.x);
+                float along = Vector2.Dot(remaining - dir * travelGeneric, t);
+                remaining = t * along;
+
+                // Ceiling: kill upward velocity
+                if (goingUp && nn.y < -0.5f)
+                    Velocity = new Vector2(Velocity.x, 0f);
+
+                // Only allow grounding when we’re not rising and not in prevention window
+                if (canGroundNow && Vector2.Angle(nn, Vector2.up) <= maxSlopeAngle)
+                {
+                    IsGrounded = true;
+                    GroundNormal = nn;
+                }
+                else if (IsGrounded && Vector2.Angle(nn, Vector2.up) > maxSlopeAngle)
+                {
                     IsGrounded = false;
+                }
+
+                pos += nn * (skin * 0.25f);
             }
             else
             {
@@ -269,7 +401,38 @@ public class MinimalKinematicController2D : MonoBehaviour
             }
         }
 
+        // Final micro-unstick from side walls to avoid rare wedging
+        UnstickFromWalls(ref pos, size);
+
         transform.position = pos;
+    }
+
+    // Nudge out from very close side-walls to avoid getting stuck after slope transitions.
+    void UnstickFromWalls(ref Vector2 pos, Vector2 size)
+    {
+        // Only check left/right so we don't fight ground snapping.
+        Vector2[] dirs = { Vector2.left, Vector2.right };
+        float targetClearance = skin * 0.5f;
+
+        foreach (var d in dirs)
+        {
+            RaycastHit2D h = Physics2D.CapsuleCast(
+                pos, size, CapsuleDirection2D.Vertical, 0f,
+                d, skin * 1.5f, collisionMask
+            );
+
+            if (h && h.distance < targetClearance)
+            {
+                float push = (targetClearance - h.distance);
+                pos -= d * push; // move away from the nearby wall
+            }
+        }
+    }
+
+    static Vector2 Project2D(Vector2 a, Vector2 onto)
+    {
+        float denom = onto.sqrMagnitude;
+        return denom > 1e-8f ? onto * (Vector2.Dot(a, onto) / denom) : Vector2.zero;
     }
 
     void OnDrawGizmosSelected()
