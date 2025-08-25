@@ -6,6 +6,7 @@ City Color Scheme
 
 Main layer: 
 	(big bush brush) brush size = 253
+
 foreground1
 	(big bush brush) brush size = 500
 	blur = 10
@@ -13,3 +14,22 @@ foreground2 (Black)
 	(big bush brush) brush size = 750
 	(longhanging) = 570
 	blur = 20
+
+background1:
+	(big bush brush) brush size = 230
+	blur = 2
+background2:
+	(big bush brush) brush size = 210
+	blur = 5
+background3:
+	(big bush brush) brush size = 200
+	blur = 10
+background4:
+	(big bush brush) brush size = 185
+	blur = 15
+background5:
+	(big bush brush) brush size = 185
+	blur = 22
+background6:
+	(big bush brush) brush size = 185
+	blur = 35
