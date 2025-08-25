@@ -28,8 +28,8 @@ background4:
 	(big bush brush) brush size = 185
 	blur = 15
 background5:
-	(big bush brush) brush size = 185
+	(big bush brush) brush size = 170
 	blur = 22
 background6:
-	(big bush brush) brush size = 185
+	(big bush brush) brush size = 150
 	blur = 35
