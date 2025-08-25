@@ -1,0 +1,15 @@
+Art Styling Info
+
+City Color Scheme
+
+(3840x2160)
+
+Main layer: 
+	(big bush brush) brush size = 253
+foreground1
+	(big bush brush) brush size = 500
+	blur = 10
+foreground2 (Black)
+	(big bush brush) brush size = 750
+	(longhanging) = 570
+	blur = 20

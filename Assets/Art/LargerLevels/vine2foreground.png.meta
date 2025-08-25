@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: b2358198b3054ca419afaec9ed154f78
+guid: 7bb392ed5f03efa439fadb24e23a2b39
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1345212565612211696
-    second: level1-0_0
+      213: -3236316114167276824
+    second: vine2foreground_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -53,7 +53,7 @@ TextureImporter:
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
-  spriteGenerateFallbackPhysicsShape: 0
+  spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -72,7 +72,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 4096
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: level1-0_0
+      name: vine2foreground_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 3840
-        height: 1109
+        x: 1696
+        y: 549
+        width: 448
+        height: 943
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 012da4f7c48d45de0800000000000000
-      internalID: -1345212565612211696
+      spriteID: 8eadf2214ab4613d0800000000000000
+      internalID: -3236316114167276824
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      level1-0_0: -1345212565612211696
+      vine2foreground_0: -3236316114167276824
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
