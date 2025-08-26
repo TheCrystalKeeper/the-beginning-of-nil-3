@@ -45,6 +45,10 @@ public class MinimalKinematicController2D : MonoBehaviour
     // timers
     float _groundingPreventionTimer;
 
+    // states
+    bool _frozen;
+    public bool IsFrozen => _frozen;
+
     void Awake()
     {
         // Small unstick so first cast doesn't start overlapped with ground
@@ -53,6 +57,7 @@ public class MinimalKinematicController2D : MonoBehaviour
 
     void Update()
     {
+        if (_frozen) return;
         // Direct key polling so it works with any input system
         float x = 0f;
         if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) x -= 1f;
@@ -66,6 +71,7 @@ public class MinimalKinematicController2D : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (_frozen) return;
         float dt = Time.fixedDeltaTime;
         _groundingPreventionTimer = Mathf.Max(0f, _groundingPreventionTimer - dt);
 
@@ -443,5 +449,41 @@ public class MinimalKinematicController2D : MonoBehaviour
         // Visualize capsule as a box stand-in (good enough for sizing)
         Vector2 size = new Vector2(radius * 2f, Mathf.Max(0.01f, height));
         Gizmos.DrawWireCube(transform.position, size);
+    }
+
+    // Call to completely freeze/unfreeze the controller.
+    public void Freeze(bool zeroOutVelocity = true, bool clearInput = true)
+    {
+        _frozen = true;
+        if (clearInput)
+        {
+            _moveInput = Vector2.zero;
+            _jumpRequested = false;
+        }
+        if (zeroOutVelocity)
+            Velocity = Vector2.zero;
+    }
+
+    public void Unfreeze()
+    {
+        _frozen = false;
+        _groundingPreventionTimer = 0f;   // allow immediate grounding again
+    }
+
+    // Move the player to a new position and reset velocity.
+    // Overload for Vector3 and Transform for convenience.
+    public void TeleportTo(Vector3 worldPosition, bool recheckGroundNow = true)
+    {
+        transform.position = worldPosition;
+        Velocity = Vector2.zero;
+        IsGrounded = false;               // will be recomputed
+        if (recheckGroundNow)             // optional immediate ground check
+            DoGroundCheck();
+    }
+
+    public void TeleportTo(Transform target, bool recheckGroundNow = true)
+    {
+        if (target != null)
+            TeleportTo(target.position, recheckGroundNow);
     }
 }
