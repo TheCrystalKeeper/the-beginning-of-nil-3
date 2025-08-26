@@ -65,8 +65,14 @@ TagManager:
   - name: Background1
     uniqueID: 3355709171
     locked: 0
+  - name: Behind Player
+    uniqueID: 3336781021
+    locked: 0
   - name: Player
     uniqueID: 4294532205
+    locked: 0
+  - name: In Front of Player
+    uniqueID: 1245287611
     locked: 0
   - name: Ground
     uniqueID: 3759430109
@@ -82,6 +88,9 @@ TagManager:
     locked: 0
   - name: Foreground4
     uniqueID: 3871786111
+    locked: 0
+  - name: UI
+    uniqueID: 117878889
     locked: 0
   m_RenderingLayers:
   - Default
