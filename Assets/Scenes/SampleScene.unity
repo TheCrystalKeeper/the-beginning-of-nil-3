@@ -2818,9 +2818,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 1950128036}
-  followOffset: {x: 0, y: 3}
+  followOffset: {x: 0, y: 2}
   cameraZ: -40
-  smoothTime: 0.5
+  smoothTime: 0.4
   maxSpeed: Infinity
   snapDistance: 30
   useBounds: 0
@@ -3034,8 +3034,8 @@ MonoBehaviour:
   offsetY: -2
   dialogueID: 0
   content: 
-  fadeStartDistance: 2.5
-  fadeFullDistance: 1.2
+  fadeStartDistance: 2.7
+  fadeFullDistance: 0.7
 --- !u!212 &550971653
 SpriteRenderer:
   m_ObjectHideFlags: 0
