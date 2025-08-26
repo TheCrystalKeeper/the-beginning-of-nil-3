@@ -12,8 +12,7 @@ public class ParallaxPositionScale : MonoBehaviour
     public float offsetY = 0f;
 
     [Tooltip("Higher = weaker parallax. Matches your old 'scale' (default 18).")]
-    public float parallaxScale = 18f;
-
+    public float parallaxScale = 40f;
     [Tooltip("Invert only the camera-driven Y motion (optional).")]
     public bool invertY = false;
 
@@ -32,6 +31,12 @@ public class ParallaxPositionScale : MonoBehaviour
 
     // Optional metadata
     public int section;
+
+    // --- minimal addition: auto re-anchor on big camera jump/teleport ---
+    [Tooltip("If the camera moves farther than this in one frame, re-anchor to avoid stretched parallax. Set 0 to disable.")]
+    public float reanchorJumpThreshold = 6f;
+    Vector3 _prevCamPos;
+    // --------------------------------------------------------------------
 
     // Internals
     Transform _camT;
@@ -56,6 +61,7 @@ public class ParallaxPositionScale : MonoBehaviour
         {
             _camStartX = _camT.position.x;
             _camStartY = _camT.position.y;
+            _prevCamPos = _camT.position; // minimal addition
         }
 
         ApplyParallax(); // initial placement, no pop
@@ -64,6 +70,16 @@ public class ParallaxPositionScale : MonoBehaviour
     void LateUpdate() // run after camera moves
     {
         if (!_camT) return;
+
+        // minimal addition: detect large camera jump and re-anchor
+        if (reanchorJumpThreshold > 0f)
+        {
+            float step = Vector3.Distance(_prevCamPos, _camT.position);
+            if (step > reanchorJumpThreshold)
+                ForceReanchor();
+            _prevCamPos = _camT.position;
+        }
+
         ApplyParallax();
     }
 
@@ -98,5 +114,25 @@ public class ParallaxPositionScale : MonoBehaviour
         y += offsetY;
 
         transform.position = new Vector3(x, y, _z);
+    }
+
+    // minimal helper: re-anchor to current camera, preserving visual position (no pop)
+    void ForceReanchor()
+    {
+        Vector3 camPos = _camT.position;
+
+        // current displayed position
+        Vector3 current = transform.position;
+
+        // remove wobble/offset so re-anchoring keeps the same on-screen position
+        float wobble = 0f;
+        if (useWobble)
+            wobble = Mathf.Sin(wobbleFrequency * (Time.time + _startX * 105.3f)) * (wobbleAmplitudePerZ * _z);
+
+        _startX = current.x - wobble;
+        _startY = current.y - offsetY;
+
+        _camStartX = camPos.x;
+        _camStartY = camPos.y;
     }
 }
