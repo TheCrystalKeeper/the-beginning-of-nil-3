@@ -18,6 +18,8 @@ public class GrassAnimation : MonoBehaviour
 
         if (Mathf.Approximately(randomPhaseOffset, 0f))
             randomPhaseOffset = Random.Range(0f, Mathf.PI * 2f);
+
+        swaySpeed += Random.Range(0f, 1f);
     }
 
     void Update()
