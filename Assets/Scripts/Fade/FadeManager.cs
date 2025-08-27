@@ -13,7 +13,12 @@ public class FadeManager : MonoBehaviour
 
     [Header("Fade Defaults")]
     public float defaultFadeTime = 0.3f;
-    public Color defaultColor = Color.white;
+    public Color defaultColor = Color.black;
+
+    [Header("Auto Start")]
+    public bool fadeOnStart = true;          // fade from opaque -> transparent at boot
+    public float startDelay = 0f;            // seconds before starting the fade
+    public float startDuration = 0.5f;       // how long the initial fade takes
 
     public static bool IsFading { get; private set; } = false;
     public static bool FadeComplete => !IsFading;
@@ -24,18 +29,31 @@ public class FadeManager : MonoBehaviour
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
-        transform.localScale = new Vector3(100f,100f,100f);
+        transform.localScale = new Vector3(100f, 100f, 100f);
         if (!targetCamera) targetCamera = Camera.main;
 
-        // Start fully transparent
-        Color c = sr.color;
-        c.a = 0f;
-        sr.color = c;
+        // Start fully opaque in the chosen defaultColor
+        sr.color = new Color(defaultColor.r, defaultColor.g, defaultColor.b, 1f);
+    }
+
+    void Start()
+    {
+        if (fadeOnStart) StartCoroutine(StartFadeRoutine());
+    }
+
+    IEnumerator StartFadeRoutine()
+    {
+        // Ensure the overlay is locked/scaled to the camera before fading
+        yield return new WaitForEndOfFrame();
+
+        if (startDelay > 0f) yield return new WaitForSecondsRealtime(startDelay);
+
+        // Fade to transparent from the current color
+        FadeOut(startDuration, defaultColor);
     }
 
     void LateUpdate()
     {
-
         if (!targetCamera) return;
 
         if (lockPosition)
@@ -80,7 +98,7 @@ public class FadeManager : MonoBehaviour
         Color start = sr.color;
         Color end = new Color(baseColor.r, baseColor.g, baseColor.b, targetAlpha);
 
-        // preserve current alpha’s start, but swap in new RGB
+        // preserve current alpha for start, but match RGB to baseColor
         start.r = baseColor.r; start.g = baseColor.g; start.b = baseColor.b;
 
         float t = 0f;
