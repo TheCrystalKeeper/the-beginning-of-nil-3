@@ -33,3 +33,12 @@ background5:
 background6:
 	(big bush brush) brush size = 150
 	blur = 35
+
+
+
+Music
+background environment
+https://www.youtube.com/watch?v=ipf7ifVSeDU
+background music
+https://audio.com/may-man-tham/audio/sleep-music-no-1-chris-haugen
+step sound
