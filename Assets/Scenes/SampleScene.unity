@@ -23035,6 +23035,10 @@ MonoBehaviour:
   fadeOnStart: 1
   startDelay: 1
   startDuration: 2
+  dimOnPause: 1
+  pauseDimAlpha: 0.4
+  pauseFadeTime: 0.2
+  pauseDimColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!212 &1968055380
 SpriteRenderer:
   m_ObjectHideFlags: 0
