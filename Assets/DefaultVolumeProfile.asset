@@ -306,10 +306,10 @@ MonoBehaviour:
     m_Value: 1
   threshold:
     m_OverrideState: 1
-    m_Value: 0.4
+    m_Value: 0.9
   intensity:
     m_OverrideState: 1
-    m_Value: 1.8
+    m_Value: 0
   scatter:
     m_OverrideState: 1
     m_Value: 0.7
@@ -381,7 +381,7 @@ MonoBehaviour:
     m_Value: 0.0001
   gaussianMaxRadius:
     m_OverrideState: 1
-    m_Value: 0.5
+    m_Value: 0.8
   highQualitySampling:
     m_OverrideState: 1
     m_Value: 1
@@ -390,19 +390,19 @@ MonoBehaviour:
     m_Value: 10
   aperture:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 5.6
   focalLength:
     m_OverrideState: 1
-    m_Value: 300
+    m_Value: 50
   bladeCount:
     m_OverrideState: 1
-    m_Value: 3
+    m_Value: 5
   bladeCurvature:
     m_OverrideState: 1
     m_Value: 1
   bladeRotation:
     m_OverrideState: 1
-    m_Value: 180
+    m_Value: 0
 --- !u!114 &-1083910812058648046
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -767,13 +767,13 @@ MonoBehaviour:
     m_Value: {x: 0.5, y: 0.5}
   intensity:
     m_OverrideState: 1
-    m_Value: 0.239
+    m_Value: 0.35
   smoothness:
     m_OverrideState: 1
-    m_Value: 0.63
+    m_Value: 0.7
   rounded:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
 --- !u!114 &9099548931283147545
 MonoBehaviour:
   m_ObjectHideFlags: 3

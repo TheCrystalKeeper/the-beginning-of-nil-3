@@ -36,6 +36,11 @@ public class DialogueArrowFade : MonoBehaviour
     public float waitTime = 0.5f;
     public Transform enterDestination;
 
+    [Header("Enter Building \u2192 PostFX (optional)")]
+    public CameraPostFXStates postFX;   // drag your camera with CameraPostFXStates here
+    public bool applyPostFXAfterFade = false;
+    public CameraPostFXStates.StateId postFXStateAfterFade = CameraPostFXStates.StateId.A;
+
     SpriteRenderer rend;
     float originalX, originalY;
     float alphavalue;
@@ -189,6 +194,16 @@ public class DialogueArrowFade : MonoBehaviour
                 // Fallback if controller not present
                 if (enterDestination != null)
                     target.transform.position = enterDestination.position;
+            }
+        }
+
+        if (applyPostFXAfterFade && postFX)
+        {
+            switch (postFXStateAfterFade)
+            {
+                case CameraPostFXStates.StateId.A: postFX.SetStateA(0); break;
+                case CameraPostFXStates.StateId.B: postFX.SetStateB(0); break;
+                case CameraPostFXStates.StateId.C: postFX.SetStateC(0); break;
             }
         }
 
