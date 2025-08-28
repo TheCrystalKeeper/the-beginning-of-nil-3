@@ -13286,7 +13286,7 @@ MonoBehaviour:
   swaySpeed: 0.5
   randomPhaseOffset: 0
   swayInsideMultiplier: 1
-  rustleBoxHalfSize: {x: 0.5, y: 2}
+  rustleBoxHalfSize: {x: 1, y: 3}
   rustleBoxOffset: {x: 0, y: 0}
   attractGain: -8
   attractMaxDeflection: 15
