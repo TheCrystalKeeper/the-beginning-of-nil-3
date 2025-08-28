@@ -57,7 +57,7 @@ public class MinimalKinematicController2D : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P))
+        if (Input.GetKeyDown(KeyCode.Escape))
         { if (GameState.IsPaused())
                 GameState.Resume();
             else
