@@ -61,6 +61,8 @@ public class GrassAnimation : MonoBehaviour
 
     void Update()
     {
+        if (GameState.IsPaused()) return;
+
         float dt = Time.deltaTime;
 
         // idle sway (reduced when inside)

@@ -69,6 +69,8 @@ public class ParallaxPositionScale : MonoBehaviour
 
     void LateUpdate() // run after camera moves
     {
+        if (GameState.IsPaused()) return;
+
         if (!_camT) return;
 
         // minimal addition: detect large camera jump and re-anchor

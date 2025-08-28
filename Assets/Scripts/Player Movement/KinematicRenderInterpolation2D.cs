@@ -36,6 +36,8 @@ public class KinematicRenderInterpolation2D : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (GameState.IsPaused()) return;
+
         _prevPos = _currPos;
         _prevRotZ = _currRotZ;
         _currPos = transform.position;
@@ -45,6 +47,8 @@ public class KinematicRenderInterpolation2D : MonoBehaviour
 
     void Update()
     {
+        if (GameState.IsPaused()) return;
+
         // --- Instant facing based on keys (independent of physics/velocity) ---
         bool left = Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A);
         bool right = Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D);

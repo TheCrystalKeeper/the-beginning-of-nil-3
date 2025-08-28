@@ -49,6 +49,8 @@ public class CameraMovement : MonoBehaviour
 
     void LateUpdate()
     {
+        if (GameState.IsPaused()) return;
+
         if (!target) return;
 
         Vector3 desired = ComputeTargetPosition();

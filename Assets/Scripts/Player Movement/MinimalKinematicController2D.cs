@@ -57,6 +57,15 @@ public class MinimalKinematicController2D : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.P))
+        { if (GameState.IsPaused())
+                GameState.Resume();
+            else
+                GameState.Pause();
+        }
+
+        if (GameState.IsPaused()) return;
+
         if (_frozen) return;
         // Direct key polling so it works with any input system
         float x = 0f;
@@ -71,6 +80,7 @@ public class MinimalKinematicController2D : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (GameState.IsPaused()) return;
         if (_frozen) return;
         float dt = Time.fixedDeltaTime;
         _groundingPreventionTimer = Mathf.Max(0f, _groundingPreventionTimer - dt);

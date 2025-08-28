@@ -20,6 +20,12 @@ public class FadeManager : MonoBehaviour
     public float startDelay = 0f;            // seconds before starting the fade
     public float startDuration = 0.5f;       // how long the initial fade takes
 
+    [Header("Pause Dimming")]
+    public bool dimOnPause = true;
+    [Range(0f, 1f)] public float pauseDimAlpha = 0.4f;  // target alpha while paused
+    public float pauseFadeTime = 0.2f;                  // how quickly to dim/undim
+    public Color pauseDimColor = Color.black;           // color for the dim overlay
+
     public static bool IsFading { get; private set; } = false;
     public static bool FadeComplete => !IsFading;
 
@@ -34,6 +40,16 @@ public class FadeManager : MonoBehaviour
 
         // Start fully opaque in the chosen defaultColor
         sr.color = new Color(defaultColor.r, defaultColor.g, defaultColor.b, 1f);
+    }
+
+    void OnEnable()
+    {
+        GameState.OnStateChanged += HandleGameStateChange;
+    }
+
+    void OnDisable()
+    {
+        GameState.OnStateChanged -= HandleGameStateChange;
     }
 
     void Start()
@@ -54,6 +70,9 @@ public class FadeManager : MonoBehaviour
 
     void LateUpdate()
     {
+        // You can keep this pause guard if you like; fades use unscaled time so they still run.
+        if (GameState.IsPaused()) return;
+
         if (!targetCamera) return;
 
         if (lockPosition)
@@ -112,5 +131,25 @@ public class FadeManager : MonoBehaviour
 
         IsFading = false;
         routine = null;
+    }
+
+    // === GameState integration ===
+    void HandleGameStateChange(int newState)
+    {
+        if (!dimOnPause) return;
+
+        // When paused (either mode), fade to dim alpha; when playing, fade to clear.
+        if (newState == GameState.Playing)
+        {
+            // back to clear
+            if (routine != null) StopCoroutine(routine);
+            routine = StartCoroutine(FadeTo(0f, pauseFadeTime, defaultColor));
+        }
+        else
+        {
+            // dim on pause (use pauseDimColor)
+            if (routine != null) StopCoroutine(routine);
+            routine = StartCoroutine(FadeTo(pauseDimAlpha, pauseFadeTime, pauseDimColor));
+        }
     }
 }
