@@ -1,7 +1,8 @@
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Events;
 using System.Collections;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class PauseMenuUI : MonoBehaviour
@@ -27,6 +28,9 @@ public class PauseMenuUI : MonoBehaviour
     public UnityEvent onContinue;   // optional; defaults provided below
     public UnityEvent onSettings;
     public UnityEvent onExit;
+
+    [Header("Selection")]
+    public bool deselectOnShow = true;
 
     Coroutine fadeRoutine;
 
@@ -92,32 +96,39 @@ public class PauseMenuUI : MonoBehaviour
     {
         float from = canvasGroup.alpha;
 
-        // enable raycasts at the start of fade-in so buttons can get focus
-        if (becomingVisible) SetInteractable(true);
+        if (becomingVisible)
+        {
+            SetInteractable(true);
+            if (deselectOnShow) DeselectAll();             // clear immediately
+        }
 
         if (Mathf.Approximately(time, 0f))
         {
             SetAlpha(target);
             if (!becomingVisible) SetInteractable(false);
-            else FocusFirst();
+            else if (deselectOnShow) StartCoroutine(DeselectNextFrame()); // belt & suspenders
             fadeRoutine = null;
             yield break;
         }
 
-        float t = 0f;
-        while (t < time)
+        float tElapsed = 0f;
+        while (tElapsed < time)
         {
-            t += Time.unscaledDeltaTime; // works when timeScale=0
-            SetAlpha(Mathf.Lerp(from, target, Mathf.Clamp01(t / time)));
+            tElapsed += Time.unscaledDeltaTime;
+            SetAlpha(Mathf.Lerp(from, target, Mathf.Clamp01(tElapsed / time)));
             yield return null;
         }
 
         SetAlpha(target);
 
         if (!becomingVisible)
+        {
             SetInteractable(false);
+        }
         else
-            FocusFirst();
+        {
+            if (deselectOnShow) StartCoroutine(DeselectNextFrame()); // ensure nothing is reselected
+        }
 
         fadeRoutine = null;
     }
@@ -133,9 +144,17 @@ public class PauseMenuUI : MonoBehaviour
         canvasGroup.blocksRaycasts = on;
     }
 
-    void FocusFirst()
+    void FocusFirst() { if (deselectOnShow) DeselectAll(); }
+
+    void DeselectAll()
     {
-        if (!firstSelected) firstSelected = btnContinue ? btnContinue : (Selectable)btnSettings ?? btnExit;
-        if (firstSelected) firstSelected.Select();
+        var es = EventSystem.current;
+        if (es != null) es.SetSelectedGameObject(null);
+    }
+
+    IEnumerator DeselectNextFrame()
+    {
+        yield return null; // wait one frame in case Unity auto-selects something on enable
+        DeselectAll();
     }
 }
