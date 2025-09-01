@@ -18,8 +18,13 @@ public class CameraMovement : MonoBehaviour
 
     [Header("World Bounds (Camera center is constrained within these)")]
     public bool useBounds = true;
-    public Rect worldBounds = new Rect(-30, -10, 60, 30);  // x,y,width,height
-    [Tooltip("How wide the 'soft fringe' is at the edges where the camera eases out.")]
+    public float minX = -30f;
+    public float maxX = 30f;
+    public float minY = -10f;
+    public float maxY = 20f;
+    public float easeAmount = 0.6f; // adjust in Inspector
+
+    [Tooltip("Width (in world units) of the soft fringe where the camera eases into the edge.")]
     public float softEdge = 6f;
 
     [Header("Optional: Curved X mapping (matches your earlier trig curve)")]
@@ -97,59 +102,46 @@ public class CameraMovement : MonoBehaviour
     // Camera center cannot pass beyond world bounds minus half the camera view.
     Rect GetInnerBounds()
     {
-        float halfH = _cam.orthographicSize;
-        float halfW = halfH * _cam.aspect;
+        // minX/maxX/minY/maxY are the world positions where the *edges* of the camera should stop.
+        float xMin = minX;
+        float xMax = maxX;
+        float yMin = minY;
+        float yMax = maxY;
 
-        float xMin = worldBounds.xMin + halfW;
-        float xMax = worldBounds.xMax - halfW;
-        float yMin = worldBounds.yMin + halfH;
-        float yMax = worldBounds.yMax - halfH;
-
-        // If bounds are smaller than the view, collapse to center
-        if (xMin > xMax) { float cx = worldBounds.center.x; xMin = xMax = cx; }
-        if (yMin > yMax) { float cy = worldBounds.center.y; yMin = yMax = cy; }
+        // If bounds are inverted, collapse to midpoint
+        if (xMin > xMax) { float cx = 0.5f * (minX + maxX); xMin = xMax = cx; }
+        if (yMin > yMax) { float cy = 0.5f * (minY + maxY); yMin = yMax = cy; }
 
         return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
-    }
-
-    // Softly clamp 'p' inside 'hard'. Within 'soft' units outside 'hard', blend toward the edge.
-    static Vector2 SoftClampToBounds(Vector2 p, Rect hard, float soft)
-    {
-        if (soft <= 0f)
-            return new Vector2(Mathf.Clamp(p.x, hard.xMin, hard.xMax),
-                               Mathf.Clamp(p.y, hard.yMin, hard.yMax));
-
-        float xHard = Mathf.Clamp(p.x, hard.xMin, hard.xMax);
-        float yHard = Mathf.Clamp(p.y, hard.yMin, hard.yMax);
-
-        float tx = Outside01(p.x, hard.xMin, hard.xMax, soft);
-        float ty = Outside01(p.y, hard.yMin, hard.yMax, soft);
-
-        // ease = smoothstep(0..1)
-        tx = Mathf.SmoothStep(0f, 1f, tx);
-        ty = Mathf.SmoothStep(0f, 1f, ty);
-
-        float x = Mathf.Lerp(p.x, xHard, tx);
-        float y = Mathf.Lerp(p.y, yHard, ty);
-
-        // Prevent wandering too far: clamp to hard expanded by 'soft'
-        Rect expanded = ExpandRect(hard, soft);
-        x = Mathf.Clamp(x, expanded.xMin, expanded.xMax);
-        y = Mathf.Clamp(y, expanded.yMin, expanded.yMax);
-
-        return new Vector2(x, y);
-    }
-
-    static float Outside01(float v, float min, float max, float soft)
-    {
-        if (v < min) return Mathf.Clamp01((min - v) / soft);
-        if (v > max) return Mathf.Clamp01((v - max) / soft);
-        return 0f; // inside
     }
 
     static Rect ExpandRect(Rect r, float m)
     {
         return new Rect(r.xMin - m, r.yMin - m, r.width + 2f * m, r.height + 2f * m);
+    }
+
+    // Softly clamp 'p' inside 'hard'. Within 'soft' units outside 'hard', blend toward the edge.
+    Vector2 SoftClampToBounds(Vector2 p, Rect hard, float soft)
+    {
+        float x = EaseToEdge(p.x, hard.xMin, hard.xMax, soft);
+        float y = EaseToEdge(p.y, hard.yMin, hard.yMax, soft);
+        return new Vector2(x, y);
+    }
+
+    float EaseToEdge(float v, float min, float max, float soft)
+    {
+        if (soft <= 0f) return Mathf.Clamp(v, min, max);
+
+        float tMin = Mathf.Clamp01(Mathf.InverseLerp(min + soft, min, v));
+        float tMax = Mathf.Clamp01(Mathf.InverseLerp(max - soft, max, v));
+
+        // Blend between linear and smoothstep using easeAmount
+        tMin = Mathf.Lerp(tMin, tMin * tMin * (3f - 2f * tMin), easeAmount);
+        tMax = Mathf.Lerp(tMax, tMax * tMax * (3f - 2f * tMax), easeAmount);
+
+        float vMin = Mathf.Lerp(v, min, tMin);
+        float vMax = Mathf.Lerp(vMin, max, tMax);
+        return Mathf.Clamp(vMax, min, max);
     }
 
 #if UNITY_EDITOR
@@ -158,20 +150,27 @@ public class CameraMovement : MonoBehaviour
         if (!_cam) _cam = GetComponent<Camera>();
         if (!useBounds) return;
 
-        Gizmos.color = Color.yellow; // hard (inner) bounds
         Rect inner = GetInnerBounds();
+
+        // Hard (inner) bounds the camera center is clamped to
+        Gizmos.color = Color.yellow;
         DrawRect(inner);
 
-        Gizmos.color = new Color(1f, 1f, 0f, 0.25f); // soft fringe
+        // Soft fringe (visualize easing band)
+        Gizmos.color = new Color(1f, 1f, 0f, 0.25f);
         DrawRect(ExpandRect(inner, softEdge));
     }
 
     static void DrawRect(Rect r)
     {
-        Vector3 a = new Vector3(r.xMin, r.yMin, 0f);
-        Vector3 b = new Vector3(r.xMax, r.yMin, 0f);
-        Vector3 c = new Vector3(r.xMax, r.yMax, 0f);
-        Vector3 d = new Vector3(r.xMin, r.yMax, 0f);
+        // 19.2f for x, 10.8 for y
+
+        float xcam_size = 19.2f;
+        float ycam_size = 10.8f;
+        Vector3 a = new Vector3(r.xMin - xcam_size, r.yMin - ycam_size, 0f);
+        Vector3 b = new Vector3(r.xMax + xcam_size, r.yMin - ycam_size, 0f);
+        Vector3 c = new Vector3(r.xMax + xcam_size, r.yMax + ycam_size, 0f);
+        Vector3 d = new Vector3(r.xMin - xcam_size, r.yMax + ycam_size, 0f);
         Gizmos.DrawLine(a, b); Gizmos.DrawLine(b, c);
         Gizmos.DrawLine(c, d); Gizmos.DrawLine(d, a);
     }
